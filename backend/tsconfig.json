@@ -4,6 +4,10 @@
     "module": "commonjs",
     "rootDir": "./src",
     "outDir": "./dist",
+    
+    // 💡 Highly Recommended for Node.js projects
+    "moduleResolution": "node", 
+
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
