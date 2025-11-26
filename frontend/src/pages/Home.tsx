@@ -1,5 +1,5 @@
 import { CheckSquare, XCircle, SearchIcon, PlusIcon } from 'lucide-react';
-import React, { useEffect, useState, useRef } from 'react';
+import  { useEffect, useState, useRef } from 'react';
 import WeekCalendar from '../components/Calandar';
 import TaskItem from '../components/TaskItem';
 import EditTaskModal from '../components/EditTaskModal';
@@ -7,7 +7,6 @@ import { taskApi } from '../services/api';
 import type { Task } from '../services/api';
 
 const Home = () => {
-  // --- STATE ---
   const [completedCount, setCompletedCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -18,24 +17,20 @@ const Home = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
-  // 📅 Calendar/Date State (Initialized to today)
-  const [selectedDate, setSelectedDate] = useState(new Date()); 
-  
-  // 🔍 Search State
+  // ⭐ Search State
   const [searchQuery, setSearchQuery] = useState('');
 
   const hasFetchedRef = useRef(false);
-  
-  // --- UTILITIES ---
-  
-  // Formats Date object into YYYY-MM-DD string for API
-  const formatDate = (date: Date) => {
-    // Ensure we use the date part only (to avoid timezone issues)
-    return date.toISOString().split('T')[0];
-  };
 
-  // --- API FETCHERS ---
+  useEffect(() => {
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      fetchWeeklySummary();
+      fetchTodayTasks();
+    }
+  }, []);
 
+  // ✅ Fetch weekly summary
   const fetchWeeklySummary = async () => {
     try {
       setLoading(true);
@@ -52,82 +47,55 @@ const Home = () => {
     }
   };
 
-  // ✅ New, Corrected Function: Fetches tasks for the currently selected date
-  const fetchTasksForDate = async (date: Date) => {
-    const formattedDate = formatDate(date);
+  // ✅ Fetch today's tasks
+  const fetchTodayTasks = async () => {
     try {
       setLoadingTasks(true);
-      // 🔥 FIX: Calls the correct function from api.ts
-      const response = await taskApi.getTasksByDate(formattedDate);
+      const response = await taskApi.getTodayTasks();
       if (response.success) setTodayTasks(response.data);
     } catch (error) {
-      console.error(`Error fetching tasks for ${formattedDate}:`, error);
-      setTodayTasks([]);
+      console.error('Error fetching today tasks:', error);
     } finally {
       setLoadingTasks(false);
     }
   };
-  
-  // Handles the actual search API call
+
+  // 🔎 Search API call
   const handleSearch = async () => {
     if (searchQuery.trim() === '') {
-        // If search is empty, revert to showing tasks for the selected date
-        fetchTasksForDate(selectedDate);
-        return;
-    }
-
-    try {
-        setLoadingTasks(true);
-        const response = await taskApi.searchTasks(searchQuery);
-        if (response.success) {
-            setTodayTasks(response.data);
-        }
-    } catch (error) {
-        console.error('Search error:', error);
-        setTodayTasks([]);
-    } finally {
-        setLoadingTasks(false);
-    }
-  };
-
-  // --- USE EFFECTS ---
-
-  // Initial Data Load (on Mount)
-  useEffect(() => {
-    if (!hasFetchedRef.current) {
-      hasFetchedRef.current = true;
-      fetchWeeklySummary();
-      fetchTasksForDate(selectedDate); // Initial call uses today's date
-    }
-  }, []); 
-
-  // Debounced Search and Calendar Date Logic
-  useEffect(() => {
-    if (searchQuery.trim() === '') {
-      // If search is cleared, fetch tasks for the current selected date
-      fetchTasksForDate(selectedDate); 
+      fetchTodayTasks();
       return;
     }
 
-    // Debounced search logic (wait 400ms after user stops typing)
+    try {
+      const response = await taskApi.searchTasks(searchQuery);
+      if (response.success) {
+        setTodayTasks(response.data);
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+    }
+  };
+
+  // 🧠 Debounced search (fires 400ms after typing)
+  useEffect(() => {
     const delay = setTimeout(() => {
-      handleSearch();
+      if (searchQuery.trim() === '') {
+        fetchTodayTasks();
+      } else {
+        handleSearch();
+      }
     }, 400);
 
     return () => clearTimeout(delay);
-  }, [searchQuery, selectedDate]); // Listen to both search and selectedDate changes
-
-
-  // --- HANDLERS ---
+  }, [searchQuery]);
 
   // ⭐ Toggle task completion
   const handleToggleStatus = async (id: string, currentStatus: 'pending' | 'completed') => {
     try {
       const newStatus = currentStatus === 'pending' ? 'completed' : 'pending';
       await taskApi.updateTaskStatus(id, newStatus);
-      
-      // Refresh task list based on current view mode
-      searchQuery ? handleSearch() : fetchTasksForDate(selectedDate);
+      fetchTodayTasks();
       fetchWeeklySummary();
     } catch (error) {
       console.error('Error updating task status:', error);
@@ -139,9 +107,7 @@ const Home = () => {
     if (window.confirm('Are you sure you want to delete this task?')) {
       try {
         await taskApi.deleteTask(id);
-        
-        // Refresh task list based on current view mode
-        searchQuery ? handleSearch() : fetchTasksForDate(selectedDate);
+        fetchTodayTasks();
         fetchWeeklySummary();
       } catch (error) {
         console.error('Error deleting task:', error);
@@ -170,18 +136,12 @@ const Home = () => {
         await taskApi.createTask(taskData as any);
       }
 
-      // After save, refresh tasks for the currently selected date
-      fetchTasksForDate(selectedDate);
+      fetchTodayTasks();
       fetchWeeklySummary();
     } catch (error) {
       console.error('Error saving task:', error);
     }
   };
-
-  // --- RENDER ---
-  
-  // Format the date for the header (e.g., "Mon Nov 26")
-  const dateHeader = selectedDate.toDateString().slice(0, 10);
 
   return (
     <div className='w-full min-h-screen relative overflow-hidden pt-16'>
@@ -200,16 +160,14 @@ const Home = () => {
         </button>
       </div>
 
-      {/* 📅 Calendar - NOW PASSING STATE HANDLERS */}
+      {/* 📅 Calendar */}
       <div className='absolute w-[355px] h-[63px] top-[96px] left-[18px]'>
-        <WeekCalendar
-          selectedDate={selectedDate}
-          setSelectedDate={setSelectedDate}
-        />
+        <WeekCalendar />
       </div>
 
-      {/* 📊 Task Summary Cards (Unchanged) */}
+      {/* 📊 Task Summary Cards */}
       <div className='absolute w-[341px] h-[96px] top-[189px] left-[24px] flex justify-between'>
+
         {/* Completed */}
         <div className='w-[162px] h-[96px] bg-[#EFF2FF] flex gap-2 rounded-lg shadow-sm'>
           <CheckSquare className='w-6 h-6 mt-4 ml-4 text-blue-600' />
@@ -224,6 +182,7 @@ const Home = () => {
             )}
           </div>
         </div>
+
         {/* Pending */}
         <div className='w-[162px] h-[96px] bg-[#FFE6E7] flex gap-2 rounded-lg shadow-sm'>
           <XCircle className='w-6 h-6 mt-4 ml-4 text-red-600' />
@@ -238,9 +197,10 @@ const Home = () => {
             )}
           </div>
         </div>
+
       </div>
 
-      {/* 📈 Weekly Progress (Unchanged) */}
+      {/* 📈 Weekly Progress */}
       <div className='absolute w-[341px] top-[305px] left-[24px]'>
         <div className='flex justify-between items-center mb-2'>
           <h3 className='text-lg font-semibold text-gray-800'>Weekly Progress</h3>
@@ -254,12 +214,10 @@ const Home = () => {
         </div>
       </div>
 
-      {/* 📝 Task List - DYNAMIC HEADER */}
+      {/* 📝 Today’s Tasks */}
       <div className='absolute w-[342px] top-[380px] left-[24px]'>
         <div className='flex justify-between items-center mb-4'>
-          <h3 className='text-lg font-semibold text-gray-800'>
-            {searchQuery ? 'Search Results' : `Tasks for ${dateHeader}`}
-          </h3>
+          <h3 className='text-lg font-semibold text-gray-800'>Tasks Today</h3>
           <span className='text-sm font-medium text-blue-600 cursor-pointer'>View All</span>
         </div>
 
@@ -267,9 +225,7 @@ const Home = () => {
           {loadingTasks ? (
             <div className='text-center py-4 text-gray-500'>Loading tasks...</div>
           ) : todayTasks.length === 0 ? (
-            <div className='text-center py-4 text-gray-500'>
-                {searchQuery ? 'No tasks found' : `No tasks for ${dateHeader}`}
-            </div>
+            <div className='text-center py-4 text-gray-500'>No tasks found</div>
           ) : (
             todayTasks.map((task) => (
               <TaskItem
