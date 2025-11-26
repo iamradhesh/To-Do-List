@@ -1,5 +1,5 @@
 import { CheckSquare, XCircle, SearchIcon, PlusIcon } from 'lucide-react';
-import React, { useEffect, useState, useRef } from 'react';
+import  { useEffect, useState, useRef } from 'react';
 import WeekCalendar from '../components/Calandar';
 import TaskItem from '../components/TaskItem';
 import EditTaskModal from '../components/EditTaskModal';

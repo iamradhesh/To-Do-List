@@ -1,4 +1,4 @@
-import React from 'react'
+
 import img1 from '../assets/Ellipse 9.png'
 import img2 from '../assets/Group 24.png'
 import { Link } from 'react-router-dom';
