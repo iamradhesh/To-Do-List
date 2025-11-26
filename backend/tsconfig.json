@@ -1,20 +1,16 @@
 {
   "compilerOptions": {
-    "target": "es2020",
+    "target": "ES2020",
     "module": "commonjs",
     "rootDir": "./src",
     "outDir": "./dist",
-    
-    // 💡 Highly Recommended for Node.js projects
-    "moduleResolution": "node", 
-
+    "moduleResolution": "node",
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
-
     "sourceMap": true,
-    "declaration": true
+    "declaration": true,
+    "types": ["node"]  // ✅ Add this line to include Node.js globals
   },
-
   "include": ["src"]
 }
