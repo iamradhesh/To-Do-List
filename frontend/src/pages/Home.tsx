@@ -1,5 +1,5 @@
 import { CheckSquare, XCircle, SearchIcon, PlusIcon } from 'lucide-react';
-import  { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import WeekCalendar from '../components/Calandar';
 import TaskItem from '../components/TaskItem';
 import EditTaskModal from '../components/EditTaskModal';
@@ -47,11 +47,12 @@ const Home = () => {
     }
   };
 
-  // ✅ Fetch today's tasks
+  // ✅ Fetch today's tasks using getTasksByDate
   const fetchTodayTasks = async () => {
     try {
       setLoadingTasks(true);
-      const response = await taskApi.getTodayTasks();
+      const today = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
+      const response = await taskApi.getTasksByDate(today);
       if (response.success) setTodayTasks(response.data);
     } catch (error) {
       console.error('Error fetching today tasks:', error);
@@ -77,7 +78,7 @@ const Home = () => {
     }
   };
 
-  // 🧠 Debounced search (fires 400ms after typing)
+  // 🧠 Debounced search
   useEffect(() => {
     const delay = setTimeout(() => {
       if (searchQuery.trim() === '') {
@@ -145,7 +146,6 @@ const Home = () => {
 
   return (
     <div className='w-full min-h-screen relative overflow-hidden pt-16'>
-
       {/* 🔍 SEARCH BAR */}
       <div className='w-full flex justify-center mb-8'>
         <input
@@ -167,8 +167,6 @@ const Home = () => {
 
       {/* 📊 Task Summary Cards */}
       <div className='absolute w-[341px] h-[96px] top-[189px] left-[24px] flex justify-between'>
-
-        {/* Completed */}
         <div className='w-[162px] h-[96px] bg-[#EFF2FF] flex gap-2 rounded-lg shadow-sm'>
           <CheckSquare className='w-6 h-6 mt-4 ml-4 text-blue-600' />
           <div className='flex flex-col mt-4 items-center'>
@@ -177,13 +175,13 @@ const Home = () => {
               <span className='text-2xl font-bold text-gray-800'>...</span>
             ) : (
               <span className='text-2xl font-bold text-gray-800'>
-                {completedCount} <span className='text-sm font-thin text-[#6E7180]'>This Week</span>
+                {completedCount}{' '}
+                <span className='text-sm font-thin text-[#6E7180]'>This Week</span>
               </span>
             )}
           </div>
         </div>
 
-        {/* Pending */}
         <div className='w-[162px] h-[96px] bg-[#FFE6E7] flex gap-2 rounded-lg shadow-sm'>
           <XCircle className='w-6 h-6 mt-4 ml-4 text-red-600' />
           <div className='flex flex-col mt-4 items-center'>
@@ -192,12 +190,12 @@ const Home = () => {
               <span className='text-2xl font-bold text-gray-800'>...</span>
             ) : (
               <span className='text-2xl font-bold text-gray-800'>
-                {pendingCount} <span className='text-sm font-thin text-[#6E7180]'>This Week</span>
+                {pendingCount}{' '}
+                <span className='text-sm font-thin text-[#6E7180]'>This Week</span>
               </span>
             )}
           </div>
         </div>
-
       </div>
 
       {/* 📈 Weekly Progress */}
